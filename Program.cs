@@ -16,6 +16,7 @@ namespace AutoContentDim
             var maxBrightness = 30;
             var minBrightness = 0;
 
+            var previouslySet = -999; //detect empty
 
             while (true)
             {
@@ -24,12 +25,51 @@ namespace AutoContentDim
                 var whitePixelPercentage = GetWhitePixelPercentage(bitmap);
 
                 //set brightness based on percentage
-                //use a linear function that maps 0.3 to 0, and 0 to 40
-                var brightness = (whitePixelPercentage - 0.3) * (-133.33) + 0;
+                // Calculate scale factor
+                double range = maxBrightness - minBrightness;
+                double scaleFactor = range / 0.3;
+                // Set brightness based on percentage
+                // Use a linear function that maps 0.3 to minBrightness, and 0 to maxBrightness
+                var newBrightness = (whitePixelPercentage - 0.3) * (-scaleFactor) + minBrightness;
                 //clamp the brightness value between 0 and 40
-                brightness = Math.Max(minBrightness, Math.Min(maxBrightness, brightness));
+                newBrightness = Math.Max(minBrightness, Math.Min(maxBrightness, newBrightness));
 
-                SetScreenBrightness((int)brightness);
+                //detect if user changed brightness and auto change the max & min limit
+                //based on increase or decrease while sleeping
+                var nowBright = GetScreenBrightness();
+                previouslySet = previouslySet == -999 ? nowBright : previouslySet;//on 1st run no previous to check so skip
+
+                int threshold = 5; // Set your threshold value
+                if (Math.Abs(nowBright - previouslySet) > threshold) // Check if the difference is greater than the threshold
+                {
+                    if (nowBright > previouslySet) // User increased
+                    {
+                        if (nowBright == 0)
+                        {
+                            minBrightness += 10;
+                        }
+                        else
+                        {
+                            maxBrightness += 10;
+                        }
+                    }
+                    else if (nowBright < previouslySet) // User decreased
+                    {
+                        if (nowBright == 100)
+                        {
+                            minBrightness -= 10;
+                        }
+                        else
+                        {
+                            maxBrightness -= 10;
+                        }
+                    }
+
+                }
+
+
+                previouslySet = (int)newBrightness; //update previous
+                SetScreenBrightness((int)newBrightness);
 
                 ////set brightness based on percentage
                 //switch (whitePixelPercentage)
@@ -39,7 +79,7 @@ namespace AutoContentDim
                 //    case > 0.0: SetScreenBrightness(35); break;
                 //}
 
-                Console.WriteLine($"White:{whitePixelPercentage}% Bright:{GetScreenBrightness()}%");
+                Console.WriteLine($"White:{Math.Round(whitePixelPercentage, 4)}% | Bright:{GetScreenBrightness()}% | Max:{maxBrightness} | Min:{minBrightness}");
 
                 await Task.Delay(100);
             }
@@ -82,7 +122,7 @@ namespace AutoContentDim
         {
             percentage = percentage < 0 ? 0 : percentage;
             percentage = percentage > 100 ? 100 : percentage;
-            
+
             ManagementScope scope = new ManagementScope("root\\WMI");
             SelectQuery query = new SelectQuery("WmiMonitorBrightnessMethods");
             using (ManagementObjectSearcher searcher = new ManagementObjectSearcher(scope, query))
