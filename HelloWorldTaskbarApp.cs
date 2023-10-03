@@ -22,7 +22,7 @@ namespace AutoContentDim
         public HelloWorldTaskbarApp()
         {
             // Hide console window
-            FreeConsole();
+           // FreeConsole();
             // Create a simple tray menu with only one item.
             trayMenu = new ContextMenuStrip();
             counterMenuItem = new ToolStripMenuItem(counter.ToString());
@@ -52,10 +52,8 @@ namespace AutoContentDim
         }
         private void WorkerThreadFunc()
         {
-
-
             var userIncrease = false; //used to keep users changes in instance mem
-            var maxBrightness = 30;
+            var maxBrightness = 80;
             var minBrightness = 0;
 
             var previouslySet = -999; //detect empty
@@ -66,62 +64,35 @@ namespace AutoContentDim
                 //# BRIGHTNESS SET
                 //get screen content brightness
                 var bitmap = Tools.GetScreenshot();
+
+                //convert to black & white for better white detection
+                //var screenshotsMonochrome = Tools.ConvertToMonoschrome(bitmap);
+
+                //var whitePixelPercentage = Tools.GetWhitePixelPercentage(screenshotsMonochrome);
                 var whitePixelPercentage = Tools.GetWhitePixelPercentage(bitmap);
 
                 //set brightness based on percentage
-                // Calculate scale factor
-                double range = maxBrightness - minBrightness;
-                double scaleFactor = range / 0.3;
-                // Set brightness based on percentage
-                // Use a linear function that maps 0.3 to minBrightness, and 0 to maxBrightness
-                var newBrightness = (whitePixelPercentage - 0.3) * (-scaleFactor) + minBrightness;
-                //clamp the brightness value between 0 and 40
-                newBrightness = Math.Max(minBrightness, Math.Min(maxBrightness, newBrightness));
 
-                //detect if user changed brightness and auto change the max & min limit
-                //based on increase or decrease while sleeping
-                var nowBright = Tools.GetScreenBrightness();
-                previouslySet = previouslySet == -999 ? nowBright : previouslySet;//on 1st run no previous to check so skip
+                var newBrightness = Tools.GetScreenBrightness();
 
-                int threshold = 5; // Set your threshold value
-                if (Math.Abs(nowBright - previouslySet) > threshold) // Check if the difference is greater than the threshold
+                var isDarkEnd = whitePixelPercentage < 1.5;
+                var isBrightEnd = whitePixelPercentage > 3;
+                if (isDarkEnd)
                 {
-                    if (nowBright > previouslySet) // User increased
-                    {
-                        if (previouslySet == 0 || nowBright == 0 || userIncrease)
-                        {
-                            minBrightness += 10;
-                            userIncrease = !userIncrease; //only set if coming from 0
-                        }
-                        else
-                        {
-                            maxBrightness += 10;
-                            userIncrease = false;
-                        }
-                    }
-                    else if (nowBright < previouslySet) // User decreased
-                    {
-                        if (previouslySet == 100)
-                        {
-                            minBrightness -= 10;
-                        }
-                        else
-                        {
-                            maxBrightness -= 10;
-                        }
-                    }
-
+                    Tools.SetScreenBrightness(maxBrightness);
+                }
+                else if (isBrightEnd)
+                {
+                    Tools.SetScreenBrightness(minBrightness);
                 }
 
-                previouslySet = (int)newBrightness; //update previous
-                Tools.SetScreenBrightness((int)newBrightness);
-
                 //set icon in tray
-                trayIcon.Icon = GenerateIconWithNumber(previouslySet);
+                trayIcon.Icon = GenerateIconWithNumber((int)newBrightness);
 
                 //set extra info for view
-                //var info =
-                //    $"White:{Math.Round(whitePixelPercentage, 4)}% | Bright:{Tools.GetScreenBrightness()}% | Max:{maxBrightness} | Min:{minBrightness}";
+                var info =
+                    $"White:{Math.Round(whitePixelPercentage, 4)}% | Bright:{Tools.GetScreenBrightness()}% | Max:{maxBrightness} | Min:{minBrightness}";
+                Console.WriteLine(info);
                 //counterMenuItem.Text = info;
 
                 Thread.Sleep(100); //wait 100ms
