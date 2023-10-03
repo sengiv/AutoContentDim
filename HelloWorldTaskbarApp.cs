@@ -140,7 +140,7 @@ namespace AutoContentDim
         private void OnExit(object sender, EventArgs e)
         {
             // Stop the worker thread
-            workerThread.Abort();
+            
             Application.Exit();
         }
         protected override void Dispose(bool isDisposing)
