@@ -120,8 +120,8 @@ namespace AutoContentDim
                 trayIcon.Icon = GenerateIconWithNumber(previouslySet);
 
                 //set extra info for view
-                var info =
-                    $"White:{Math.Round(whitePixelPercentage, 4)}% | Bright:{Tools.GetScreenBrightness()}% | Max:{maxBrightness} | Min:{minBrightness}";
+                //var info =
+                //    $"White:{Math.Round(whitePixelPercentage, 4)}% | Bright:{Tools.GetScreenBrightness()}% | Max:{maxBrightness} | Min:{minBrightness}";
                 //counterMenuItem.Text = info;
 
                 Thread.Sleep(100); //wait 100ms
@@ -140,7 +140,7 @@ namespace AutoContentDim
         private void OnExit(object sender, EventArgs e)
         {
             // Stop the worker thread
-            
+
             Application.Exit();
         }
         protected override void Dispose(bool isDisposing)
@@ -152,7 +152,7 @@ namespace AutoContentDim
             }
             base.Dispose(isDisposing);
         }
-      
+
     }
 
 }
