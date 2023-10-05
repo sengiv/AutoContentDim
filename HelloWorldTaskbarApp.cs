@@ -40,7 +40,7 @@ namespace AutoContentDim
             // Create a tray icon.
             trayIcon = new NotifyIcon();
             trayIcon.Text = "Auto Content Dimmer";
-            trayIcon.Icon = GenerateIconWithNumber(counter);
+            trayIcon.Icon =  GenerateIconWithNumber(counter);
             // Add menu to tray icon and show it.
             trayIcon.ContextMenuStrip = trayMenu;
             trayIcon.Visible = true;
@@ -61,54 +61,31 @@ namespace AutoContentDim
 
         private double MinThreshold = 1.5;
         private double MaxThreshold = 5;
-        private int maxBrightness = 70;
-        private int minBrightness = 0;
+        private int maxBrightness = 50;
+        private int minBrightness = 10;
 
         private void WorkerThreadFunc()
         {
-            var userIncrease = false; //used to keep users changes in instance mem
-
-            var previouslySet = -999; //detect empty
-
             while (true)
             {
-
-                //# BRIGHTNESS SET
-                //get screen content brightness
+                // Get screen content brightness
                 var bitmap = Tools.GetScreenshot();
-
-                //convert to black & white for better white detection
-                //var screenshotsMonochrome = Tools.ConvertToMonoschrome(bitmap);
-
-                //var whitePixelPercentage = Tools.GetWhitePixelPercentage(screenshotsMonochrome);
+                // Get white pixel percentage
                 var whitePixelPercentage = Tools.GetWhitePixelPercentage(bitmap);
-
-                //set brightness based on percentage
-                var newBrightness = Tools.GetScreenBrightness();
-                var isDarkEnd = whitePixelPercentage < MinThreshold; //too dark
-                var isBrightEnd = whitePixelPercentage > MaxThreshold; //too bright
-                if (isDarkEnd)
-                {
-                    Tools.SetScreenBrightness(maxBrightness);
-                }
-                else if (isBrightEnd)
-                {
-                    Tools.SetScreenBrightness(minBrightness);
-                }
-
-                //set icon in tray
-                trayIcon.Icon = GenerateIconWithNumber((int)newBrightness);
-
-                //set extra info for view
+                // Any white pixel percentage above 60 is considered as maximum (100)
+                whitePixelPercentage = whitePixelPercentage > 60 ? 100 : whitePixelPercentage;
+                // Calculate new brightness based on white pixel percentage
+                var newBrightness = maxBrightness - ((maxBrightness - minBrightness) * (whitePixelPercentage / 100));
+                // Set brightness
+                Tools.SetScreenBrightness((int)newBrightness);
+                // Set extra info for view
                 var info =
                     $"White:{Math.Round(whitePixelPercentage, 4)}% | Bright:{Tools.GetScreenBrightness()}% | Max:{maxBrightness} | Min:{minBrightness}";
                 Console.WriteLine(info);
-                //counterMenuItem.Text = info;
-
-                Thread.Sleep(100); //wait 100ms
+                Thread.Sleep(100); // Wait 100ms
             }
         }
-        
+
         protected override void OnLoad(EventArgs e)
         {
             Visible = false; // Hide form window.
